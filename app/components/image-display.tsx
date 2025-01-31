@@ -9,7 +9,7 @@ interface ImageDisplayProps {
 
 export default function ImageDisplay({ title, imageUrl, onDownload }: ImageDisplayProps) {
   return (
-    <div className="border rounded-lg p-4">
+    <div className="border rounded-lg p-4 w-full">
       <div className="flex justify-between items-center mb-2">
         <h2 className="text-lg font-semibold">{title}</h2>
         {imageUrl && (
@@ -25,7 +25,13 @@ export default function ImageDisplay({ title, imageUrl, onDownload }: ImageDispl
         )}
       </div>
       {imageUrl ? (
-        <img src={imageUrl} alt={title} className="max-w-full h-auto" />
+        <div className="flex justify-center items-center min-h-[300px] max-h-[600px] overflow-hidden">
+          <img 
+            src={imageUrl} 
+            alt={title} 
+            className="max-w-full max-h-full w-auto h-auto object-contain" 
+          />
+        </div>
       ) : (
         <div className="bg-gray-200 h-48 flex items-center justify-center text-gray-500">
           No image
