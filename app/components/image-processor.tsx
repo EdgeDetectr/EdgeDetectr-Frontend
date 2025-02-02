@@ -21,6 +21,10 @@ export default function ImageProcessor() {
   const [afterImage, setAfterImage] = useState<string | null>(null)
   const [progress, setProgress] = useState(0)
 
+  const getBackendUrl = () => {
+    return `${location.protocol}//${location.hostname}:3001`
+  }
+
   const handleFileUpload = async (file: File) => {
     if (!operator) {
       alert("Please select an operator before uploading.")
@@ -34,7 +38,7 @@ export default function ImageProcessor() {
     try {
       setProgress(50)
       const response = await axios.post(
-        `http://localhost:3001/api/operators/${operator}`,
+        `${getBackendUrl()}/api/operators/${operator}`,
         formData,
         {
           headers: {
@@ -47,8 +51,8 @@ export default function ImageProcessor() {
       const responseData = JSON.parse(response.data)
       const { inputImage, outputImage } = responseData
 
-      setBeforeImage(`http://localhost:3001/uploads/${inputImage}`)
-      setAfterImage(`http://localhost:3001/results/${outputImage}`)
+      setBeforeImage(`${getBackendUrl()}/uploads/${inputImage}`)
+      setAfterImage(`${getBackendUrl()}/results/${outputImage}`)
       setProgress(100)
     } catch (error) {
       console.error("Error processing image:", error)
