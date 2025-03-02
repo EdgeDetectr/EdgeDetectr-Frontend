@@ -29,6 +29,7 @@ export default function ImageDisplay({ title, imageUrl, onDownload }: ImageDispl
           <img 
             src={imageUrl} 
             alt={title} 
+            crossOrigin="anonymous"
             className="max-w-full max-h-full w-auto h-auto object-contain" 
           />
         </div>

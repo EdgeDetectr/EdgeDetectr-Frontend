@@ -10,6 +10,9 @@ RUN npm ci
 COPY . .
 
 # Build the application
+# Note: Environment variables are baked into the build, so they need to be set at build time
+ARG NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 RUN npm run build
 
 # Production image
@@ -31,6 +34,10 @@ COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 ENV NODE_ENV=production
 ENV PORT=3000
 ENV NEXT_TELEMETRY_DISABLED=1
+
+# Pass environment variables from build args
+ARG NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 
 EXPOSE 3000
 

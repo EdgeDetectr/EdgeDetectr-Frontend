@@ -49,6 +49,16 @@ EdgeDetectr-Frontend/
 - `NODE_ENV`: Environment mode (development/production)
 - `PORT`: Server port (default: 3000)
 
+### Environment Setup for Deployment
+
+1. For local development, use the provided `.env.local` file
+2. For production deployment:
+   - Create a `.env.production` file (not tracked in git)
+   - Set `NEXT_PUBLIC_API_URL` to your deployed backend URL
+   - Example: `NEXT_PUBLIC_API_URL=http://your-load-balancer-url.amazonaws.com`
+
+**Important:** Never commit your actual production URLs to the git repository. Use the `.env.production.example` as a template.
+
 ## Development
 
 1. Install dependencies:
