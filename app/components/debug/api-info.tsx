@@ -4,11 +4,20 @@ import { useState, useEffect } from 'react'
 
 export default function ApiInfo() {
   const [apiUrl, setApiUrl] = useState<string>('Loading...')
+  const [isForced, setIsForced] = useState<boolean>(false)
   
   useEffect(() => {
     // Get the API URL from environment variable
-    const url = process.env.NEXT_PUBLIC_API_URL || 'Not set'
-    setApiUrl(url)
+    let url = process.env.NEXT_PUBLIC_API_URL || 'Not set'
+    
+    // Check if we're forcing HTTPS
+    if (url.startsWith('http://') && window.location.protocol === 'https:') {
+      const forcedUrl = url.replace('http://', 'https://')
+      setIsForced(true)
+      setApiUrl(forcedUrl)
+    } else {
+      setApiUrl(url)
+    }
   }, [])
   
   return (
@@ -20,6 +29,11 @@ export default function ApiInfo() {
           ? '✅ Using secure HTTPS connection' 
           : '⚠️ Using insecure HTTP connection'}
       </p>
+      {isForced && (
+        <p className="text-xs mt-1 text-blue-500">
+          ℹ️ HTTPS was automatically enforced for security
+        </p>
+      )}
     </div>
   )
 } 

@@ -39,13 +39,19 @@ export default function ImageProcessor() {
 
   const getBackendUrl = () => {
     // Always use the exact URL from environment variable
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+    let apiUrl = process.env.NEXT_PUBLIC_API_URL;
     console.log("Backend API URL from env:", apiUrl);
     
     if (!apiUrl) {
       console.error("NEXT_PUBLIC_API_URL environment variable is not set!");
       // Use a safe default that doesn't mix domains
-      return "http://localhost:3001";
+      return "https://edgedetectr-lb-2106112805.us-east-1.elb.amazonaws.com";
+    }
+    
+    // Force HTTPS for production to prevent Mixed Content errors
+    if (apiUrl.startsWith('http://') && window.location.protocol === 'https:') {
+      apiUrl = apiUrl.replace('http://', 'https://');
+      console.log("Forced HTTPS for backend URL:", apiUrl);
     }
     
     // Ensure the URL doesn't end with a slash to prevent double slashes
