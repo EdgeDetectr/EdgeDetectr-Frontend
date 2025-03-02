@@ -123,11 +123,11 @@ export default function ImageProcessor() {
       
       // Create a simple timeout that will trigger an error message if the upload takes too long
       timeoutRef.current = setTimeout(() => {
-        console.log("Manual timeout triggered after 5 seconds");
+        console.log("Manual timeout triggered after 20 seconds");
         setError("Connection timed out. The server took too long to respond. Please try again or try a smaller image file.");
         setProgress(0);
         setStatusMessage(null);
-      }, 5000);
+      }, 20000);
       
       try {
         const response = await axios.post(
@@ -153,7 +153,7 @@ export default function ImageProcessor() {
                   setError("Connection timed out. The server took too long to respond. Please try again or try a smaller image file.");
                   setProgress(0);
                   setStatusMessage(null);
-                }, 5000);
+                }, 15000);
               }
             }
           }
@@ -166,6 +166,7 @@ export default function ImageProcessor() {
         }
 
         console.log("Response received:", response.status, response.statusText)
+        console.log("Raw response data:", response.data)
         setProgress(80)
         setStatusMessage("Processing image...")
         
@@ -185,13 +186,47 @@ export default function ImageProcessor() {
         const beforeUrl = `${getBackendUrl()}/uploads/${inputImage}`
         const afterUrl = `${getBackendUrl()}/results/${outputImage}`
         
+        // Add cache busting parameter to prevent browser from caching old images
+        const cacheParam = `?t=${Date.now()}`
+        const beforeUrlWithCache = `${beforeUrl}${cacheParam}`
+        const afterUrlWithCache = `${afterUrl}${cacheParam}`
+        
         console.log("Setting image URLs:", {
-          beforeUrl,
-          afterUrl
+          beforeUrl: beforeUrlWithCache,
+          afterUrl: afterUrlWithCache
         })
         
-        setBeforeImage(beforeUrl)
-        setAfterImage(afterUrl)
+        // Check if the result image actually exists
+        const checkImageExists = async (url: string) => {
+          try {
+            console.log(`Checking if image exists at: ${url}`)
+            const response = await fetch(url, { method: 'HEAD' })
+            console.log(`Image check response for ${url}:`, response.status)
+            return response.status === 200
+          } catch (err) {
+            console.error(`Error checking image at ${url}:`, err)
+            return false
+          }
+        }
+        
+        // Attempt to verify the result image exists
+        const resultExists = await checkImageExists(afterUrl)
+        console.log(`Result image check: ${resultExists ? 'EXISTS' : 'NOT FOUND'}`)
+        
+        if (!resultExists) {
+          console.warn("Result image not found. Trying fallback method...")
+          // Wait a moment and try again - sometimes there's a delay in the file being available
+          setTimeout(async () => {
+            const retryExists = await checkImageExists(afterUrl)
+            console.log(`Retry result image check: ${retryExists ? 'EXISTS' : 'STILL NOT FOUND'}`)
+            if (retryExists) {
+              setAfterImage(afterUrl + '?t=' + new Date().getTime())
+            }
+          }, 3000)
+        }
+        
+        setBeforeImage(beforeUrlWithCache)
+        setAfterImage(afterUrlWithCache)
         setProgress(100)
         setStatusMessage("Complete!")
         
