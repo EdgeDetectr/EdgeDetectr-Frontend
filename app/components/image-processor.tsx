@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Progress } from "@/components/ui/progress"
 import ImageUpload from "./image-upload"
@@ -28,6 +28,9 @@ interface ProgressEvent {
   total?: number;
 }
 
+// Rate limiting constants
+const RATE_LIMIT_WINDOW = 30; // 30 seconds
+
 export default function ImageProcessor() {
   const [operator, setOperator] = useState<string>("")
   const [beforeImage, setBeforeImage] = useState<string | null>(null)
@@ -35,7 +38,59 @@ export default function ImageProcessor() {
   const [progress, setProgress] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const [statusMessage, setStatusMessage] = useState<string | null>(null)
+  const [canUpload, setCanUpload] = useState<boolean>(true)
+  const [timeRemaining, setTimeRemaining] = useState<number>(0)
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Check localStorage for last upload time and update canUpload state
+  useEffect(() => {
+    const checkUploadAvailability = () => {
+      const lastUploadTime = localStorage.getItem('lastUploadTime');
+      
+      if (lastUploadTime) {
+        const elapsedSeconds = Math.floor((Date.now() - parseInt(lastUploadTime)) / 1000);
+        
+        if (elapsedSeconds < RATE_LIMIT_WINDOW) {
+          setCanUpload(false);
+          const remaining = RATE_LIMIT_WINDOW - elapsedSeconds;
+          setTimeRemaining(remaining);
+          
+          // Start countdown timer
+          if (timerRef.current) {
+            clearInterval(timerRef.current);
+          }
+          
+          timerRef.current = setInterval(() => {
+            setTimeRemaining(prev => {
+              if (prev <= 1) {
+                setCanUpload(true);
+                if (timerRef.current) {
+                  clearInterval(timerRef.current);
+                  timerRef.current = null;
+                }
+                return 0;
+              }
+              return prev - 1;
+            });
+          }, 1000);
+        } else {
+          setCanUpload(true);
+        }
+      } else {
+        setCanUpload(true);
+      }
+    };
+    
+    checkUploadAvailability();
+    
+    // Cleanup interval on component unmount
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+    };
+  }, []);
 
   const getBackendUrl = () => {
     // Always use the exact URL from environment variable
@@ -44,8 +99,8 @@ export default function ImageProcessor() {
     
     if (!apiUrl) {
       console.error("NEXT_PUBLIC_API_URL environment variable is not set!");
-      // Use a safe default that doesn't mix domains
-      return "https://edgedetectr-lb-2106112805.us-east-1.elb.amazonaws.com";
+      // Return empty string and handle the error in the UI
+      return "";
     }
     
     // Force HTTPS for production to prevent Mixed Content errors
@@ -60,7 +115,11 @@ export default function ImageProcessor() {
 
   // POST to this URL with operator in the URL path as expected by backend
   const getApiEndpointUrl = (op: string) => {
-    return `${getBackendUrl()}/api/operators/${encodeURIComponent(op)}`;
+    const baseUrl = getBackendUrl();
+    if (!baseUrl) {
+      return "";
+    }
+    return `${baseUrl}/api/operators/${encodeURIComponent(op)}`;
   }
 
   const handleFileUpload = async (file: File) => {
@@ -68,6 +127,43 @@ export default function ImageProcessor() {
       alert("Please select an operator before uploading.")
       return
     }
+    
+    // Check if the API URL is configured
+    const apiUrl = getApiEndpointUrl(operator);
+    if (!apiUrl) {
+      setError("Server configuration error: API URL is not set. Please contact the administrator.");
+      return;
+    }
+    
+    // Check if upload is allowed based on rate limiting
+    if (!canUpload) {
+      setError(`Rate limit exceeded. Please wait ${timeRemaining} seconds before uploading another image.`);
+      return;
+    }
+    
+    // Record upload time and set canUpload to false
+    localStorage.setItem('lastUploadTime', Date.now().toString());
+    setCanUpload(false);
+    setTimeRemaining(RATE_LIMIT_WINDOW);
+    
+    // Start countdown timer
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+    }
+    
+    timerRef.current = setInterval(() => {
+      setTimeRemaining(prev => {
+        if (prev <= 1) {
+          setCanUpload(true);
+          if (timerRef.current) {
+            clearInterval(timerRef.current);
+            timerRef.current = null;
+          }
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
 
     // Reset state
     setError(null)
@@ -88,7 +184,6 @@ export default function ImageProcessor() {
     formData.append("operator", operator)
     
     // For debugging, log the backend URL and form data contents
-    const apiUrl = getApiEndpointUrl(operator);
     console.log("Sending request to:", apiUrl)
     console.log("Selected operator:", operator)
     console.log("File size:", file.size)
@@ -377,7 +472,9 @@ export default function ImageProcessor() {
 
       <ImageUpload 
         onFileUpload={handleFileUpload} 
-        isOperatorSelected={Boolean(operator)} 
+        isOperatorSelected={Boolean(operator)}
+        canUpload={canUpload}
+        timeRemaining={timeRemaining} 
       />
       
       {error && (
