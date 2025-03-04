@@ -140,6 +140,63 @@ export default function ImageProcessor() {
       setError(`Rate limit exceeded. Please wait ${timeRemaining} seconds before uploading another image.`);
       return;
     }
+
+    // iOS-specific image handling
+    try {
+      // Check if the image needs to be resized (iOS can produce very large images)
+      if (file.size > 10 * 1024 * 1024) { // 10MB
+        setStatusMessage("Optimizing image for upload...");
+        // Create a canvas to resize the image
+        const img = new Image();
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        await new Promise((resolve, reject) => {
+          img.onload = () => {
+            // Calculate new dimensions while maintaining aspect ratio
+            const maxDimension = 2048;
+            let width = img.width;
+            let height = img.height;
+            
+            if (width > height && width > maxDimension) {
+              height = Math.round((height * maxDimension) / width);
+              width = maxDimension;
+            } else if (height > maxDimension) {
+              width = Math.round((width * maxDimension) / height);
+              height = maxDimension;
+            }
+            
+            canvas.width = width;
+            canvas.height = height;
+            
+            if (!ctx) {
+              reject(new Error('Could not get canvas context'));
+              return;
+            }
+            
+            ctx.drawImage(img, 0, 0, width, height);
+            resolve(null);
+          };
+          
+          img.onerror = () => reject(new Error('Failed to load image'));
+          img.src = URL.createObjectURL(file);
+        });
+        
+        // Convert canvas to blob
+        const blob = await new Promise<Blob>((resolve) => {
+          canvas.toBlob((blob) => {
+            if (blob) resolve(blob);
+          }, 'image/jpeg', 0.8);
+        });
+        
+        // Create a new file from the blob
+        file = new File([blob], file.name, { type: 'image/jpeg' });
+      }
+    } catch (error) {
+      console.error('Error processing image:', error);
+      setError('Failed to process image. Please try again with a different image.');
+      return;
+    }
     
     // Record upload time and set canUpload to false
     localStorage.setItem('lastUploadTime', Date.now().toString());

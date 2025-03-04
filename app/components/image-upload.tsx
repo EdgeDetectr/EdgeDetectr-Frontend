@@ -37,6 +37,20 @@ export default function ImageUpload({
     const file = event.target.files?.[0]
     if (!file) return
 
+    // Check file size (100MB limit)
+    const maxSize = 100 * 1024 * 1024; // 100MB in bytes
+    if (file.size > maxSize) {
+      alert("File size exceeds 100MB limit. Please choose a smaller image.");
+      return;
+    }
+
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      alert("Invalid file type. Please upload a JPEG, PNG, GIF, or WebP image.");
+      return;
+    }
+
     if (!isOperatorSelected) {
       alert("Please select an operator before uploading.")
       return
@@ -59,7 +73,8 @@ export default function ImageUpload({
         ref={fileInputRef}
         type="file"
         onChange={handleFileChange}
-        accept="image/*"
+        accept="image/jpeg,image/png,image/gif,image/webp"
+        capture="environment"
         className="hidden"
       />
       <p>Drag and drop an image here, or click the button below</p>
