@@ -44,9 +44,12 @@ export default function ImageUpload({
       return;
     }
 
-    // Validate file type
+    // Safari-specific file type handling
     const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-    if (!validTypes.includes(file.type)) {
+    const isSafari = navigator.userAgent.includes('Safari') && !navigator.userAgent.includes('Chrome');
+    
+    // For Safari, we'll be more lenient with file types since we'll convert to JPEG anyway
+    if (!isSafari && !validTypes.includes(file.type)) {
       alert("Invalid file type. Please upload a JPEG, PNG, GIF, or WebP image.");
       return;
     }
@@ -73,7 +76,7 @@ export default function ImageUpload({
         ref={fileInputRef}
         type="file"
         onChange={handleFileChange}
-        accept="image/jpeg,image/png,image/gif,image/webp"
+        accept="image/*"
         capture="environment"
         className="hidden"
       />
