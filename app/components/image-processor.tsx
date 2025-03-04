@@ -232,6 +232,7 @@ export default function ImageProcessor() {
       // Try fetch first
       let response;
       try {
+        // First try with credentials
         response = await fetch(apiUrl, {
           method: 'POST',
           body: formData,
@@ -242,23 +243,37 @@ export default function ImageProcessor() {
           },
         });
       } catch (fetchError) {
-        console.log('Fetch failed, trying axios as fallback:', fetchError);
-        // Fallback to axios if fetch fails
-        response = await axios.post(apiUrl, formData, {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-            'Accept': 'application/json',
-          },
-          withCredentials: true,
-          timeout: 30000,
-          // @ts-ignore - onUploadProgress is available in Axios but may not be in type definitions
-          onUploadProgress: (progressEvent: ProgressEvent) => {
-            const total = progressEvent.total || 100;
-            const percentCompleted = Math.round((progressEvent.loaded * 100) / total);
-            setProgress(40 + Math.min(percentCompleted / 2, 40));
-            setStatusMessage(`Uploading: ${percentCompleted}%`);
-          }
-        });
+        console.log('Fetch with credentials failed, trying without credentials:', fetchError);
+        try {
+          // Try without credentials
+          response = await fetch(apiUrl, {
+            method: 'POST',
+            body: formData,
+            mode: 'cors',
+            credentials: 'omit',
+            headers: {
+              'Accept': 'application/json',
+            },
+          });
+        } catch (fetchError2) {
+          console.log('Fetch without credentials failed, trying axios as fallback:', fetchError2);
+          // Fallback to axios with specific configuration for Firefox
+          response = await axios.post(apiUrl, formData, {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+              'Accept': 'application/json',
+            },
+            withCredentials: false, // Disable credentials for Firefox
+            timeout: 30000,
+            // @ts-ignore - onUploadProgress is available in Axios but may not be in type definitions
+            onUploadProgress: (progressEvent: ProgressEvent) => {
+              const total = progressEvent.total || 100;
+              const percentCompleted = Math.round((progressEvent.loaded * 100) / total);
+              setProgress(40 + Math.min(percentCompleted / 2, 40));
+              setStatusMessage(`Uploading: ${percentCompleted}%`);
+            }
+          });
+        }
       }
 
       // Handle response based on whether we used fetch or axios
