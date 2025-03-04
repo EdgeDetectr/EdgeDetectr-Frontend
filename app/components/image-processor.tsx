@@ -146,37 +146,110 @@ export default function ImageProcessor() {
     setProgress(20)
     setStatusMessage("Preparing upload...")
     
-    // Log file details
-    console.log("Uploading file:", {
-      name: file.name,
-      size: file.size,
-      type: file.type
-    })
+    // Detect browser and platform
+    const userAgent = window.navigator.userAgent;
+    const isSafari = /^((?!chrome|android).)*safari/i.test(userAgent);
+    const isFirefox = /Firefox/i.test(userAgent);
+    const isChrome = /Chrome/i.test(userAgent);
+    const isIOS = /iPad|iPhone|iPod/.test(userAgent);
+
+    // Log browser information for debugging
+    console.log('Browser Info:', {
+      userAgent,
+      isSafari,
+      isFirefox,
+      isChrome,
+      isIOS
+    });
+
+    // Process image for Safari and iOS
+    let processedFile = file;
+    if (isSafari || isIOS) {
+      try {
+        const img = new Image();
+        img.src = URL.createObjectURL(file);
+        
+        await new Promise((resolve, reject) => {
+          img.onload = resolve;
+          img.onerror = reject;
+        });
+
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        if (!ctx) throw new Error('Could not get canvas context');
+
+        // Calculate dimensions maintaining aspect ratio
+        const maxDimension = 2048;
+        let width = img.width;
+        let height = img.height;
+        
+        if (width > height && width > maxDimension) {
+          height = Math.round((height * maxDimension) / width);
+          width = maxDimension;
+        } else if (height > maxDimension) {
+          width = Math.round((width * maxDimension) / height);
+          height = maxDimension;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+
+        // Fill with white background to handle transparency
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, width, height);
+        
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        // Convert to JPEG with higher quality
+        processedFile = new File(
+          [await new Promise<Blob>(resolve => canvas.toBlob(blob => resolve(blob!), 'image/jpeg', 0.9))],
+          file.name.replace(/\.[^/.]+$/, '') + '.jpg',
+          { type: 'image/jpeg' }
+        );
+
+        URL.revokeObjectURL(img.src);
+      } catch (error) {
+        console.error('Image processing error:', error);
+        // Continue with original file if processing fails
+      }
+    }
     
     const formData = new FormData()
-    formData.append("file", file)
+    formData.append("file", processedFile)
     formData.append("operator", operator)
     
     // For debugging, log the backend URL and form data contents
     console.log("Sending request to:", apiUrl)
     console.log("Selected operator:", operator)
-    console.log("File size:", file.size)
-    console.log("File type:", file.type)
+    console.log("File size:", processedFile.size)
+    console.log("File type:", processedFile.type)
     
     try {
       console.log(`Starting API request to ${apiUrl} at ${new Date().toISOString()}`);
       setProgress(40)
       setStatusMessage("Uploading image...")
       
-      const response = await axios.post(
-        apiUrl,
-        formData,
-        {
+      // Try fetch first
+      let response;
+      try {
+        response = await fetch(apiUrl, {
+          method: 'POST',
+          body: formData,
+          mode: 'cors',
+          credentials: 'include',
           headers: {
-            "Content-Type": "multipart/form-data",
+            'Accept': 'application/json',
           },
-          responseType: "text",
-          // Add timeout and retry configuration
+        });
+      } catch (fetchError) {
+        console.log('Fetch failed, trying axios as fallback:', fetchError);
+        // Fallback to axios if fetch fails
+        response = await axios.post(apiUrl, formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+            'Accept': 'application/json',
+          },
+          withCredentials: true,
           timeout: 30000,
           // @ts-ignore - onUploadProgress is available in Axios but may not be in type definitions
           onUploadProgress: (progressEvent: ProgressEvent) => {
@@ -185,26 +258,42 @@ export default function ImageProcessor() {
             setProgress(40 + Math.min(percentCompleted / 2, 40));
             setStatusMessage(`Uploading: ${percentCompleted}%`);
           }
-        }
-      );
+        });
+      }
 
-      console.log("Response received:", response.status, response.statusText)
-      console.log("Raw response data:", response.data)
+      // Handle response based on whether we used fetch or axios
+      const responseData = response instanceof Response ? await response.json() : response.data;
+      const status = response instanceof Response ? response.status : response.status;
+      const statusText = response instanceof Response ? response.statusText : response.statusText;
+
+      if (status !== 200) {
+        console.error('Server response:', {
+          status,
+          statusText,
+          responseData
+        });
+
+        // Handle specific error cases
+        if (status === 0) {
+          throw new Error('Network Error: Unable to connect to the server. This might be due to CORS or SSL issues. Please try using Chrome or ensure the server is properly configured.');
+        }
+        
+        if (status === 401) {
+          throw new Error('Authentication Error: Please log in again.');
+        }
+
+        if (status === 413) {
+          throw new Error('File too large: Please upload a smaller image.');
+        }
+
+        throw new Error(responseData?.message || `Server error: ${status} ${statusText}`);
+      }
+
+      console.log("Response received:", status, statusText);
       setProgress(80)
       setStatusMessage("Processing image...")
       
-      // Parse the response data
-      let responseData
-      try {
-        responseData = JSON.parse(response.data as string)
-        console.log("Parsed response data:", responseData)
-      } catch (parseError) {
-        console.error("Error parsing response data:", parseError)
-        console.log("Raw response data:", response.data)
-        throw new Error("Failed to parse server response")
-      }
-      
-      const { inputImage, outputImage } = responseData
+      const { inputImage, outputImage } = responseData;
 
       const beforeUrl = `${getBackendUrl()}/uploads/${inputImage}`
       const afterUrl = `${getBackendUrl()}/results/${outputImage}`
@@ -223,7 +312,11 @@ export default function ImageProcessor() {
       const checkImageExists = async (url: string) => {
         try {
           console.log(`Checking if image exists at: ${url}`)
-          const response = await fetch(url, { method: 'HEAD' })
+          const response = await fetch(url, { 
+            method: 'HEAD',
+            mode: 'cors',
+            credentials: 'include'
+          })
           console.log(`Image check response for ${url}:`, response.status)
           return response.status === 200
         } catch (err) {
