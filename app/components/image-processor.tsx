@@ -31,6 +31,12 @@ interface ProgressEvent {
 // Rate limiting constants
 const RATE_LIMIT_WINDOW = 30; // 30 seconds
 
+// Define type for upload progress event
+interface UploadProgressEvent {
+  loaded: number;
+  total?: number;
+}
+
 export default function ImageProcessor() {
   const [operator, setOperator] = useState<string>("")
   const [beforeImage, setBeforeImage] = useState<string | null>(null)
@@ -229,23 +235,39 @@ export default function ImageProcessor() {
       setProgress(40)
       setStatusMessage("Uploading image...")
       
-      // Try fetch first
+      // Configure axios with SSL handling
+      const axiosConfig = {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          'Accept': 'application/json',
+        },
+        withCredentials: false,
+        timeout: 30000,
+        // Handle self-signed certificates in development
+        ...(process.env.NODE_ENV === 'development' && {
+          httpsAgent: new (require('https').Agent)({
+            rejectUnauthorized: false
+          })
+        })
+      };
+
       let response;
       try {
-        // First try with credentials
-        response = await fetch(apiUrl, {
-          method: 'POST',
-          body: formData,
-          mode: 'cors',
-          credentials: 'include',
-          headers: {
-            'Accept': 'application/json',
-          },
+        // Try axios first with SSL handling
+        response = await axios.post(apiUrl, formData, {
+          ...axiosConfig,
+          onUploadProgress: (progressEvent: any) => {
+            const total = progressEvent.total || 100;
+            const percentCompleted = Math.round((progressEvent.loaded * 100) / total);
+            setProgress(40 + Math.min(percentCompleted / 2, 40));
+            setStatusMessage(`Uploading: ${percentCompleted}%`);
+          }
         });
-      } catch (fetchError) {
-        console.log('Fetch with credentials failed, trying without credentials:', fetchError);
+      } catch (axiosError: any) {
+        console.error('Axios request failed:', axiosError);
+        
+        // Try fetch as fallback
         try {
-          // Try without credentials
           response = await fetch(apiUrl, {
             method: 'POST',
             body: formData,
@@ -255,24 +277,9 @@ export default function ImageProcessor() {
               'Accept': 'application/json',
             },
           });
-        } catch (fetchError2) {
-          console.log('Fetch without credentials failed, trying axios as fallback:', fetchError2);
-          // Fallback to axios with specific configuration for Firefox
-          response = await axios.post(apiUrl, formData, {
-            headers: {
-              'Content-Type': 'multipart/form-data',
-              'Accept': 'application/json',
-            },
-            withCredentials: false, // Disable credentials for Firefox
-            timeout: 30000,
-            // @ts-ignore - onUploadProgress is available in Axios but may not be in type definitions
-            onUploadProgress: (progressEvent: ProgressEvent) => {
-              const total = progressEvent.total || 100;
-              const percentCompleted = Math.round((progressEvent.loaded * 100) / total);
-              setProgress(40 + Math.min(percentCompleted / 2, 40));
-              setStatusMessage(`Uploading: ${percentCompleted}%`);
-            }
-          });
+        } catch (fetchError) {
+          console.error('Fetch request failed:', fetchError);
+          throw new Error('Failed to upload image. Please try again.');
         }
       }
 
@@ -290,7 +297,7 @@ export default function ImageProcessor() {
 
         // Handle specific error cases
         if (status === 0) {
-          throw new Error('Network Error: Unable to connect to the server. This might be due to CORS or SSL issues. Please try using Chrome or ensure the server is properly configured.');
+          throw new Error('Network Error: Unable to connect to the server. This might be due to CORS or SSL issues.');
         }
         
         if (status === 401) {
