@@ -15,23 +15,19 @@ const operators = [
   "roberts cross",
 ]
 
-// Define type for API error response
 interface ApiErrorResponse {
   error: string;
   details?: string;
   exitCode?: number;
 }
 
-// Define a simple interface for progress events
 interface ProgressEvent {
   loaded: number;
   total?: number;
 }
 
-// Rate limiting constants
-const RATE_LIMIT_WINDOW = 30; // 30 seconds
+const RATE_LIMIT_WINDOW = 30;
 
-// Define type for upload progress event
 interface UploadProgressEvent {
   loaded: number;
   total?: number;
@@ -49,7 +45,6 @@ export default function ImageProcessor() {
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Check localStorage for last upload time and update canUpload state
   useEffect(() => {
     const checkUploadAvailability = () => {
       const lastUploadTime = localStorage.getItem('lastUploadTime');
@@ -62,7 +57,6 @@ export default function ImageProcessor() {
           const remaining = RATE_LIMIT_WINDOW - elapsedSeconds;
           setTimeRemaining(remaining);
           
-          // Start countdown timer
           if (timerRef.current) {
             clearInterval(timerRef.current);
           }
@@ -90,7 +84,6 @@ export default function ImageProcessor() {
     
     checkUploadAvailability();
     
-    // Cleanup interval on component unmount
     return () => {
       if (timerRef.current) {
         clearInterval(timerRef.current);
@@ -99,27 +92,22 @@ export default function ImageProcessor() {
   }, []);
 
   const getBackendUrl = () => {
-    // Always use the exact URL from environment variable
     let apiUrl = process.env.NEXT_PUBLIC_API_URL;
     console.log("Backend API URL from env:", apiUrl);
     
     if (!apiUrl) {
       console.error("NEXT_PUBLIC_API_URL environment variable is not set!");
-      // Return empty string and handle the error in the UI
       return "";
     }
     
-    // Force HTTPS for production to prevent Mixed Content errors
     if (apiUrl.startsWith('http://') && window.location.protocol === 'https:') {
       apiUrl = apiUrl.replace('http://', 'https://');
       console.log("Forced HTTPS for backend URL:", apiUrl);
     }
     
-    // Ensure the URL doesn't end with a slash to prevent double slashes
     return apiUrl.endsWith('/') ? apiUrl.slice(0, -1) : apiUrl;
   }
 
-  // POST to this URL with operator in the URL path as expected by backend
   const getApiEndpointUrl = (op: string) => {
     const baseUrl = getBackendUrl();
     if (!baseUrl) {
@@ -134,32 +122,27 @@ export default function ImageProcessor() {
       return
     }
     
-    // Check if the API URL is configured
     const apiUrl = getApiEndpointUrl(operator);
     if (!apiUrl) {
       setError("Server configuration error: API URL is not set. Please contact the administrator.");
       return;
     }
     
-    // Check if upload is allowed based on rate limiting
     if (!canUpload) {
       setError(`Rate limit exceeded. Please wait ${timeRemaining} seconds before uploading another image.`);
       return;
     }
 
-    // Reset state
     setError(null)
     setProgress(20)
     setStatusMessage("Preparing upload...")
     
-    // Detect browser and platform
     const userAgent = window.navigator.userAgent;
     const isSafari = /^((?!chrome|android).)*safari/i.test(userAgent);
     const isFirefox = /Firefox/i.test(userAgent);
     const isChrome = /Chrome/i.test(userAgent);
     const isIOS = /iPad|iPhone|iPod/.test(userAgent);
 
-    // Log browser information for debugging
     console.log('Browser Info:', {
       userAgent,
       isSafari,
@@ -168,7 +151,6 @@ export default function ImageProcessor() {
       isIOS
     });
 
-    // Process image for Safari and iOS
     let processedFile = file;
     if (isSafari || isIOS) {
       try {
@@ -184,7 +166,6 @@ export default function ImageProcessor() {
         const ctx = canvas.getContext('2d');
         if (!ctx) throw new Error('Could not get canvas context');
 
-        // Calculate dimensions maintaining aspect ratio
         const maxDimension = 2048;
         let width = img.width;
         let height = img.height;
@@ -200,13 +181,11 @@ export default function ImageProcessor() {
         canvas.width = width;
         canvas.height = height;
 
-        // Fill with white background to handle transparency
         ctx.fillStyle = '#FFFFFF';
         ctx.fillRect(0, 0, width, height);
         
         ctx.drawImage(img, 0, 0, width, height);
         
-        // Convert to JPEG with higher quality
         processedFile = new File(
           [await new Promise<Blob>(resolve => canvas.toBlob(blob => resolve(blob!), 'image/jpeg', 0.9))],
           file.name.replace(/\.[^/.]+$/, '') + '.jpg',
@@ -216,7 +195,7 @@ export default function ImageProcessor() {
         URL.revokeObjectURL(img.src);
       } catch (error) {
         console.error('Image processing error:', error);
-        // Continue with original file if processing fails
+        processedFile = file;
       }
     }
     
@@ -224,7 +203,6 @@ export default function ImageProcessor() {
     formData.append("file", processedFile)
     formData.append("operator", operator)
     
-    // For debugging, log the backend URL and form data contents
     console.log("Sending request to:", apiUrl)
     console.log("Selected operator:", operator)
     console.log("File size:", processedFile.size)
@@ -235,7 +213,6 @@ export default function ImageProcessor() {
       setProgress(40)
       setStatusMessage("Uploading image...")
       
-      // Configure axios with SSL handling
       const axiosConfig = {
         headers: {
           'Content-Type': 'multipart/form-data',
@@ -243,7 +220,6 @@ export default function ImageProcessor() {
         },
         withCredentials: false,
         timeout: 30000,
-        // Handle self-signed certificates in development
         ...(process.env.NODE_ENV === 'development' && {
           httpsAgent: new (require('https').Agent)({
             rejectUnauthorized: false
@@ -253,7 +229,6 @@ export default function ImageProcessor() {
 
       let response;
       try {
-        // Try axios first with SSL handling
         response = await axios.post(apiUrl, formData, {
           ...axiosConfig,
           onUploadProgress: (progressEvent: any) => {
@@ -266,7 +241,6 @@ export default function ImageProcessor() {
       } catch (axiosError: any) {
         console.error('Axios request failed:', axiosError);
         
-        // Try fetch as fallback
         try {
           response = await fetch(apiUrl, {
             method: 'POST',
@@ -283,7 +257,6 @@ export default function ImageProcessor() {
         }
       }
 
-      // Handle response based on whether we used fetch or axios
       const responseData = response instanceof Response ? await response.json() : response.data;
       const status = response instanceof Response ? response.status : response.status;
       const statusText = response instanceof Response ? response.statusText : response.statusText;
@@ -295,7 +268,6 @@ export default function ImageProcessor() {
           responseData
         });
 
-        // Handle specific error cases
         if (status === 0) {
           throw new Error('Network Error: Unable to connect to the server. This might be due to CORS or SSL issues.');
         }
@@ -320,7 +292,6 @@ export default function ImageProcessor() {
       const beforeUrl = `${getBackendUrl()}/uploads/${inputImage}`
       const afterUrl = `${getBackendUrl()}/results/${outputImage}`
       
-      // Add cache busting parameter to prevent browser from caching old images
       const cacheParam = `?t=${Date.now()}`
       const beforeUrlWithCache = `${beforeUrl}${cacheParam}`
       const afterUrlWithCache = `${afterUrl}${cacheParam}`
@@ -330,7 +301,6 @@ export default function ImageProcessor() {
         afterUrl: afterUrlWithCache
       })
       
-      // Check if the result image actually exists
       const checkImageExists = async (url: string) => {
         try {
           console.log(`Checking if image exists at: ${url}`)
@@ -347,13 +317,11 @@ export default function ImageProcessor() {
         }
       }
       
-      // Attempt to verify the result image exists
       const resultExists = await checkImageExists(afterUrl)
       console.log(`Result image check: ${resultExists ? 'EXISTS' : 'NOT FOUND'}`)
       
       if (!resultExists) {
         console.warn("Result image not found. Trying fallback method...")
-        // Wait a moment and try again - sometimes there's a delay in the file being available
         setTimeout(async () => {
           const retryExists = await checkImageExists(afterUrl)
           console.log(`Retry result image check: ${retryExists ? 'EXISTS' : 'STILL NOT FOUND'}`)
@@ -368,7 +336,6 @@ export default function ImageProcessor() {
       setProgress(100)
       setStatusMessage("Complete!")
       
-      // Clear status message after a delay
       setTimeout(() => {
         setStatusMessage(null)
       }, 2000)
@@ -384,21 +351,17 @@ export default function ImageProcessor() {
         message: err.message 
       });
       
-      // Handle SSL certificate errors
       if (err.code === 'ERR_CERT_AUTHORITY_INVALID' || 
           err.message?.includes('certificate') || 
           err.message?.includes('SSL')) {
         errorMessage = "SSL Certificate Error: The server's security certificate is not properly configured. Please contact the administrator.";
       }
-      // Handle network errors
       else if (err.code === 'ERR_NETWORK') {
         errorMessage = "Network Error: Unable to connect to the server. Please check your internet connection and try again.";
       }
-      // Handle timeout errors
       else if (err.code === 'ECONNABORTED') {
         errorMessage = "Connection timed out. The server took too long to respond. Please try again or try a smaller image file.";
       }
-      // Handle server errors
       else if (err.response) {
         errorMessage = `Server error: ${err.response.data?.error || err.response.statusText}`;
         if (err.response.data?.details) {

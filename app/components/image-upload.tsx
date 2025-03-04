@@ -37,18 +37,15 @@ export default function ImageUpload({
     const file = event.target.files?.[0]
     if (!file) return
 
-    // Check file size (100MB limit)
-    const maxSize = 100 * 1024 * 1024; // 100MB in bytes
+    const maxSize = 100 * 1024 * 1024;
     if (file.size > maxSize) {
       alert("File size exceeds 100MB limit. Please choose a smaller image.");
       return;
     }
 
-    // Safari-specific file type handling
     const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
     const isSafari = navigator.userAgent.includes('Safari') && !navigator.userAgent.includes('Chrome');
     
-    // For Safari, we'll be more lenient with file types since we'll convert to JPEG anyway
     if (!isSafari && !validTypes.includes(file.type)) {
       alert("Invalid file type. Please upload a JPEG, PNG, GIF, or WebP image.");
       return;
