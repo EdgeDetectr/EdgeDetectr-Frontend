@@ -99,12 +99,23 @@ export default function ImageProcessor() {
     // If URL is the load balancer, replace it with custom domain for production
     if (apiUrl && apiUrl.includes('elb.amazonaws.com')) {
       console.log("Replacing load balancer URL with custom domain");
-      apiUrl = 'https://edgedetectr.com';
+      // Use the same domain/subdomain that the frontend is hosted on
+      apiUrl = window.location.origin;
+    }
+    
+    // Make sure we use the same domain for API requests as the current page
+    // This prevents CORS issues between www and non-www domains
+    if (apiUrl && apiUrl.includes('edgedetectr.com') && window.location.hostname.includes('www')) {
+      // If frontend is on www but API is not, use www for API too
+      if (!apiUrl.includes('www')) {
+        console.log("Converting API URL to use www subdomain to match frontend");
+        apiUrl = apiUrl.replace('https://edgedetectr.com', 'https://www.edgedetectr.com');
+      }
     }
     
     if (!apiUrl) {
       console.error("NEXT_PUBLIC_API_URL environment variable is not set!");
-      return "https://edgedetectr.com"; // Fallback to custom domain
+      return window.location.origin; // Fallback to current origin
     }
     
     if (apiUrl.startsWith('http://') && window.location.protocol === 'https:' && 
@@ -254,12 +265,28 @@ export default function ImageProcessor() {
       } catch (axiosError: any) {
         console.error('Axios request failed:', axiosError);
         
+        // Check if this might be a CORS issue between www and non-www domains
+        const currentHost = window.location.hostname;
+        const apiUrlObj = new URL(apiUrl);
+        
+        if (currentHost.includes('www') && !apiUrlObj.hostname.includes('www')) {
+          // Try replacing the API URL with the www version
+          console.log("CORS issue detected - retrying with www subdomain");
+          apiUrl = apiUrl.replace(apiUrlObj.hostname, 'www.' + apiUrlObj.hostname);
+          console.log("Retrying request with:", apiUrl);
+        } else if (!currentHost.includes('www') && apiUrlObj.hostname.includes('www')) {
+          // Try replacing the API URL with the non-www version
+          console.log("CORS issue detected - retrying with non-www domain");
+          apiUrl = apiUrl.replace(apiUrlObj.hostname, apiUrlObj.hostname.replace('www.', ''));
+          console.log("Retrying request with:", apiUrl);
+        }
+        
         try {
           response = await fetch(apiUrl, {
             method: 'POST',
             body: formData,
             mode: 'cors',
-            credentials: 'omit',
+            credentials: 'include', // Try including credentials to handle authentication
             headers: {
               'Accept': 'application/json',
             },
