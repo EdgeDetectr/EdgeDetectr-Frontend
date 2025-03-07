@@ -16,6 +16,7 @@ const nextConfig = {
     domains: [
       "localhost",
       "edgedetectr-lb-2106112805.us-east-1.elb.amazonaws.com",
+      "edgedetectr.com",
     ],
   },
   experimental: {
