@@ -92,15 +92,23 @@ export default function ImageProcessor() {
   }, []);
 
   const getBackendUrl = () => {
+    // First try to get URL from env var
     let apiUrl = process.env.NEXT_PUBLIC_API_URL;
     console.log("Backend API URL from env:", apiUrl);
     
-    if (!apiUrl) {
-      console.error("NEXT_PUBLIC_API_URL environment variable is not set!");
-      return "";
+    // If URL is the load balancer, replace it with custom domain for production
+    if (apiUrl && apiUrl.includes('elb.amazonaws.com')) {
+      console.log("Replacing load balancer URL with custom domain");
+      apiUrl = 'https://edgedetectr.com';
     }
     
-    if (apiUrl.startsWith('http://') && window.location.protocol === 'https:') {
+    if (!apiUrl) {
+      console.error("NEXT_PUBLIC_API_URL environment variable is not set!");
+      return "https://edgedetectr.com"; // Fallback to custom domain
+    }
+    
+    if (apiUrl.startsWith('http://') && window.location.protocol === 'https:' && 
+        !apiUrl.includes('elb.amazonaws.com')) {
       apiUrl = apiUrl.replace('http://', 'https://');
       console.log("Forced HTTPS for backend URL:", apiUrl);
     }
@@ -122,7 +130,7 @@ export default function ImageProcessor() {
       return
     }
     
-    const apiUrl = getApiEndpointUrl(operator);
+    let apiUrl = getApiEndpointUrl(operator);
     if (!apiUrl) {
       setError("Server configuration error: API URL is not set. Please contact the administrator.");
       return;
@@ -220,13 +228,17 @@ export default function ImageProcessor() {
         },
         withCredentials: false,
         timeout: 30000,
-        // TEMPORARY FIX: Bypass SSL certificate validation
-        // WARNING: This is a security risk and should be fixed properly
-        // by installing a valid SSL certificate on the backend server
-        httpsAgent: new (require('https').Agent)({
-          rejectUnauthorized: false
-        })
       } as any;  // Type assertion to avoid TypeScript errors
+      
+      // Use a more targeted approach for bypassing SSL certificate validation
+      // This is specifically for the AWS load balancer URLs which have certificate issues
+      if (apiUrl.includes('elb.amazonaws.com')) {
+        console.log("AWS load balancer detected, bypassing SSL verification and using custom domain instead");
+        // Replace the API URL with the custom domain that has valid SSL
+        const customDomainUrl = `https://edgedetectr.com/api/operators/${encodeURIComponent(operator)}`;
+        console.log("Redirecting request to custom domain:", customDomainUrl);
+        apiUrl = customDomainUrl;
+      }
 
       let response;
       try {
