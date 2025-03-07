@@ -119,13 +119,13 @@ export default function ImageProcessor() {
     const isChrome = /Chrome/i.test(userAgent);
     const isIOS = /iPad|iPhone|iPod/.test(userAgent);
 
-    console.log('Browser Info:', {
-      userAgent,
-      isSafari,
-      isFirefox,
-      isChrome,
-      isIOS
-    });
+    // console.log('Browser Info:', {
+    //   userAgent,
+    //   isSafari,
+    //   isFirefox,
+    //   isChrome,
+    //   isIOS
+    // });
 
     let processedFile = file;
     if (isSafari || isIOS) {
@@ -179,13 +179,13 @@ export default function ImageProcessor() {
     formData.append("file", processedFile)
     formData.append("operator", operator)
     
-    console.log("Sending request to:", apiUrl)
-    console.log("Selected operator:", operator)
-    console.log("File size:", processedFile.size)
-    console.log("File type:", processedFile.type)
+    // console.log("Sending request to:", apiUrl)
+    // console.log("Selected operator:", operator)
+    // console.log("File size:", processedFile.size)
+    // console.log("File type:", processedFile.type)
     
     try {
-      console.log(`Starting API request to ${apiUrl} at ${new Date().toISOString()}`);
+      // console.log(`Starting API request to ${apiUrl} at ${new Date().toISOString()}`);
       setProgress(40)
       setStatusMessage("Uploading image...")
       
@@ -270,7 +270,7 @@ export default function ImageProcessor() {
         throw new Error(responseData?.message || `Server error: ${status} ${statusText}`);
       }
 
-      console.log("Response received:", status, statusText);
+      // console.log("Response received:", status, statusText);
       setProgress(80)
       setStatusMessage("Processing image...")
       
@@ -283,20 +283,20 @@ export default function ImageProcessor() {
       const beforeUrlWithCache = `${beforeUrl}${cacheParam}`
       const afterUrlWithCache = `${afterUrl}${cacheParam}`
       
-      console.log("Setting image URLs:", {
-        beforeUrl: beforeUrlWithCache,
-        afterUrl: afterUrlWithCache
-      })
+      // console.log("Setting image URLs:", {
+      //   beforeUrl: beforeUrlWithCache,
+      //   afterUrl: afterUrlWithCache
+      // })
       
       const checkImageExists = async (url: string) => {
         try {
-          console.log(`Checking if image exists at: ${url}`)
+          // console.log(`Checking if image exists at: ${url}`)
           const response = await fetch(url, { 
             method: 'HEAD',
             mode: 'cors',
             credentials: 'include'
           })
-          console.log(`Image check response for ${url}:`, response.status)
+          // console.log(`Image check response for ${url}:`, response.status)
           return response.status === 200
         } catch (err) {
           console.error(`Error checking image at ${url}:`, err)
@@ -305,13 +305,13 @@ export default function ImageProcessor() {
       }
       
       const resultExists = await checkImageExists(afterUrl)
-      console.log(`Result image check: ${resultExists ? 'EXISTS' : 'NOT FOUND'}`)
+      // console.log(`Result image check: ${resultExists ? 'EXISTS' : 'NOT FOUND'}`)
       
       if (!resultExists) {
         console.warn("Result image not found. Trying fallback method...")
         setTimeout(async () => {
           const retryExists = await checkImageExists(afterUrl)
-          console.log(`Retry result image check: ${retryExists ? 'EXISTS' : 'STILL NOT FOUND'}`)
+          // console.log(`Retry result image check: ${retryExists ? 'EXISTS' : 'STILL NOT FOUND'}`)
           if (retryExists) {
             setAfterImage(afterUrl + '?t=' + new Date().getTime())
           }
@@ -386,7 +386,7 @@ export default function ImageProcessor() {
   return (
     <div className="space-y-4">
       <Select onValueChange={setOperator}>
-        <SelectTrigger className="w-[180px]">
+        <SelectTrigger className="w-[180px]" aria-label="Select edge detection operator">
           <SelectValue placeholder="Select operator" />
         </SelectTrigger>
         <SelectContent>

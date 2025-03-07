@@ -8,7 +8,7 @@
  */
 export function getBackendUrl(): string {
   let apiUrl = process.env.NEXT_PUBLIC_API_URL;
-  console.log("Backend API URL from env:", apiUrl);
+  // console.log("Backend API URL from env:", apiUrl);
   
   if (!apiUrl) {
     console.error("NEXT_PUBLIC_API_URL environment variable is not set!");
@@ -30,7 +30,7 @@ export function getBackendUrl(): string {
   }
   
   // NO DOMAIN STRUCTURE MODIFICATIONS - use exactly what's in the environment
-  console.log("Final backend URL:", apiUrl);
+  // console.log("Final backend URL:", apiUrl);
   return apiUrl;
 }
 

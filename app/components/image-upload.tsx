@@ -88,17 +88,17 @@ export default function ImageUpload({
             Select File
           </Button>
           {!canUpload && timeRemaining > 0 && (
-            <p className="text-amber-500 mt-2">
+            <p className="text-amber-700 font-medium mt-2">
               Rate limit active. Please wait {timeRemaining} seconds before uploading again.
             </p>
           )}
         </>
       ) : (
-        <p className="text-red-500 mt-2">
+        <p className="text-red-700 mt-2 font-medium">
           Please select an operator before uploading an image
         </p>
       )}
-      <p className="text-sm text-gray-500 mt-2">
+      <p className="text-sm text-gray-700 mt-2">
         Max size 100 MB. Limited to one upload every 30 seconds. By proceeding, you agree to our{" "}
         <TermsDialog 
           trigger={

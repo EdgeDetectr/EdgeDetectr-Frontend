@@ -1,0 +1,18 @@
+# Allow all web crawlers to access all content
+User-agent: *
+Disallow:
+
+# Allow Googlebot specifically
+User-agent: Googlebot
+Allow: /
+
+# Allow Googlebot-Image
+User-agent: Googlebot-Image
+Allow: /
+
+# Allow Bingbot
+User-agent: Bingbot
+Allow: /
+
+# Sitemap location
+Sitemap: https://edgedetectr.com/sitemap.xml 

@@ -34,7 +34,7 @@ export default function ImageDisplay({ title, imageUrl, onDownload }: ImageDispl
           />
         </div>
       ) : (
-        <div className="bg-gray-200 h-48 flex items-center justify-center text-gray-500">
+        <div className="bg-gray-200 h-48 flex items-center justify-center text-gray-700 font-medium">
           No image
         </div>
       )}
