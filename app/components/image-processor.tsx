@@ -201,10 +201,10 @@ export default function ImageProcessor() {
       // Use a more targeted approach for bypassing SSL certificate validation
       // This is specifically for the AWS load balancer URLs which have certificate issues
       if (apiUrl.includes('elb.amazonaws.com')) {
-        console.log("AWS load balancer detected, bypassing SSL verification and using custom domain instead");
+        // console.log("AWS load balancer detected, bypassing SSL verification and using custom domain instead");
         // Replace the API URL with the custom domain that has valid SSL
         const customDomainUrl = `https://api.edgedetectr.com/api/operators/${encodeURIComponent(operator)}`;
-        console.log("Redirecting request to custom domain:", customDomainUrl);
+        // console.log("Redirecting request to custom domain:", customDomainUrl);
         apiUrl = customDomainUrl;
       }
 
@@ -224,9 +224,7 @@ export default function ImageProcessor() {
         
         const apiUrlObj = new URL(apiUrl);
         
-        // Don't try to modify URLs to work around CORS issues - this should be fixed on the server
-        // Instead, just attempt a fetch with the original URL
-        console.log("Network error detected - retrying with fetch API");
+        // console.log("Network error detected - retrying with fetch API");
         
         try {
           response = await fetch(apiUrl, {
@@ -332,11 +330,11 @@ export default function ImageProcessor() {
       let errorMessage = "Error processing image. Please try again."
       const err = error as any;
 
-      console.log("Error details:", {
-        name: err.name, 
-        code: err.code, 
-        message: err.message 
-      });
+      // console.log("Error details:", {
+      //   name: err.name, 
+      //   code: err.code, 
+      //   message: err.message 
+      // });
       
       if (err.code === 'ERR_CERT_AUTHORITY_INVALID' || 
           err.message?.includes('certificate') || 

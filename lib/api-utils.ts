@@ -20,13 +20,13 @@ export function getBackendUrl(): string {
       apiUrl.startsWith('http://') && 
       window.location.protocol === 'https:') {
     apiUrl = apiUrl.replace('http://', 'https://');
-    console.log("Forced HTTPS for backend URL:", apiUrl);
+    // console.log("Forced HTTPS for backend URL:", apiUrl);
   }
   
   // Remove trailing slash if present
   if (apiUrl.endsWith('/')) {
     apiUrl = apiUrl.slice(0, -1);
-    console.log("Removed trailing slash:", apiUrl);
+    // console.log("Removed trailing slash:", apiUrl);
   }
   
   // NO DOMAIN STRUCTURE MODIFICATIONS - use exactly what's in the environment
