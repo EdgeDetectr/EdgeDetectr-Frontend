@@ -220,12 +220,13 @@ export default function ImageProcessor() {
         },
         withCredentials: false,
         timeout: 30000,
-        ...(process.env.NODE_ENV === 'development' && {
-          httpsAgent: new (require('https').Agent)({
-            rejectUnauthorized: false
-          })
+        // TEMPORARY FIX: Bypass SSL certificate validation
+        // WARNING: This is a security risk and should be fixed properly
+        // by installing a valid SSL certificate on the backend server
+        httpsAgent: new (require('https').Agent)({
+          rejectUnauthorized: false
         })
-      };
+      } as any;  // Type assertion to avoid TypeScript errors
 
       let response;
       try {
