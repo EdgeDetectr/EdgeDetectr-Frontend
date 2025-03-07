@@ -265,28 +265,18 @@ export default function ImageProcessor() {
       } catch (axiosError: any) {
         console.error('Axios request failed:', axiosError);
         
-        // Check if this might be a CORS issue between www and non-www domains
-        const currentHost = window.location.hostname;
         const apiUrlObj = new URL(apiUrl);
         
-        if (currentHost.includes('www') && !apiUrlObj.hostname.includes('www')) {
-          // Try replacing the API URL with the www version
-          console.log("CORS issue detected - retrying with www subdomain");
-          apiUrl = apiUrl.replace(apiUrlObj.hostname, 'www.' + apiUrlObj.hostname);
-          console.log("Retrying request with:", apiUrl);
-        } else if (!currentHost.includes('www') && apiUrlObj.hostname.includes('www')) {
-          // Try replacing the API URL with the non-www version
-          console.log("CORS issue detected - retrying with non-www domain");
-          apiUrl = apiUrl.replace(apiUrlObj.hostname, apiUrlObj.hostname.replace('www.', ''));
-          console.log("Retrying request with:", apiUrl);
-        }
+        // Don't try to modify URLs to work around CORS issues - this should be fixed on the server
+        // Instead, just attempt a fetch with the original URL
+        console.log("Network error detected - retrying with fetch API");
         
         try {
           response = await fetch(apiUrl, {
             method: 'POST',
             body: formData,
             mode: 'cors',
-            credentials: 'include', // Try including credentials to handle authentication
+            credentials: 'omit', // Don't include credentials to simplify CORS requests
             headers: {
               'Accept': 'application/json',
             },
