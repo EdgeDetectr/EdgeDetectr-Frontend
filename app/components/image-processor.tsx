@@ -246,7 +246,7 @@ export default function ImageProcessor() {
       if (apiUrl.includes('elb.amazonaws.com')) {
         console.log("AWS load balancer detected, bypassing SSL verification and using custom domain instead");
         // Replace the API URL with the custom domain that has valid SSL
-        const customDomainUrl = `https://edgedetectr.com/api/operators/${encodeURIComponent(operator)}`;
+        const customDomainUrl = `https://api.edgedetectr.com/api/operators/${encodeURIComponent(operator)}`;
         console.log("Redirecting request to custom domain:", customDomainUrl);
         apiUrl = customDomainUrl;
       }
