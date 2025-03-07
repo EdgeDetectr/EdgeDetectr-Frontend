@@ -6,6 +6,7 @@ import { Progress } from "@/components/ui/progress"
 import ImageUpload from "./image-upload"
 import ImageDisplay from "./image-display"
 import axios from "axios"
+import { getBackendUrl, getApiEndpointUrl } from "@/lib/api-utils"
 
 const operators = [
   "opencv sobel",
@@ -90,50 +91,6 @@ export default function ImageProcessor() {
       }
     };
   }, []);
-
-  const getBackendUrl = () => {
-    // First try to get URL from env var
-    let apiUrl = process.env.NEXT_PUBLIC_API_URL;
-    console.log("Backend API URL from env:", apiUrl);
-    
-    // If URL is the load balancer, replace it with custom domain for production
-    if (apiUrl && apiUrl.includes('elb.amazonaws.com')) {
-      console.log("Replacing load balancer URL with custom domain");
-      // Use the same domain/subdomain that the frontend is hosted on
-      apiUrl = window.location.origin;
-    }
-    
-    // Make sure we use the same domain for API requests as the current page
-    // This prevents CORS issues between www and non-www domains
-    if (apiUrl && apiUrl.includes('edgedetectr.com') && window.location.hostname.includes('www')) {
-      // If frontend is on www but API is not, use www for API too
-      if (!apiUrl.includes('www')) {
-        console.log("Converting API URL to use www subdomain to match frontend");
-        apiUrl = apiUrl.replace('https://edgedetectr.com', 'https://www.edgedetectr.com');
-      }
-    }
-    
-    if (!apiUrl) {
-      console.error("NEXT_PUBLIC_API_URL environment variable is not set!");
-      return window.location.origin; // Fallback to current origin
-    }
-    
-    if (apiUrl.startsWith('http://') && window.location.protocol === 'https:' && 
-        !apiUrl.includes('elb.amazonaws.com')) {
-      apiUrl = apiUrl.replace('http://', 'https://');
-      console.log("Forced HTTPS for backend URL:", apiUrl);
-    }
-    
-    return apiUrl.endsWith('/') ? apiUrl.slice(0, -1) : apiUrl;
-  }
-
-  const getApiEndpointUrl = (op: string) => {
-    const baseUrl = getBackendUrl();
-    if (!baseUrl) {
-      return "";
-    }
-    return `${baseUrl}/api/operators/${encodeURIComponent(op)}`;
-  }
 
   const handleFileUpload = async (file: File) => {
     if (!operator) {

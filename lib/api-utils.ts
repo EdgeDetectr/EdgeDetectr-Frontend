@@ -29,7 +29,7 @@ export function getBackendUrl(): string {
     console.log("Removed trailing slash:", apiUrl);
   }
   
-  // DO NOT modify domain structure (no www changes)
+  // NO DOMAIN STRUCTURE MODIFICATIONS - use exactly what's in the environment
   console.log("Final backend URL:", apiUrl);
   return apiUrl;
 }
