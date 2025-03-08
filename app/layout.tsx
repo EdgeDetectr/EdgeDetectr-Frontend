@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import './globals.css'
+import Script from 'next/script'
 
 export const metadata: Metadata = {
   title: 'Edge Detectr | Free Online Edge Detection Tool',
@@ -56,6 +57,34 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="h-full">
+      <head>
+        <Script 
+          id="structured-data"
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "WebApplication",
+              "name": "Edge Detectr",
+              "url": "https://edgedetectr.com",
+              "description": "Free online edge detection tool with multiple algorithms including Sobel, Prewitt, and Roberts Cross",
+              "applicationCategory": "Photography",
+              "operatingSystem": "Any",
+              "offers": {
+                "@type": "Offer",
+                "price": "0",
+                "priceCurrency": "USD"
+              },
+              "author": {
+                "@type": "Person",
+                "name": "Kailin Xing"
+              },
+              "keywords": "edge detection, image processing, computer vision, sobel, prewitt, roberts cross",
+              "featureList": "Multiple edge detection algorithms, instant processing, no account required"
+            })
+          }}
+        />
+      </head>
       <body className="flex flex-col min-h-screen h-full text-gray-900">
         {children}
       </body>
