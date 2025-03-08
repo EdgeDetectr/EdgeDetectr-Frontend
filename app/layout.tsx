@@ -2,9 +2,9 @@ import type { Metadata } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'Edge Detectr | Modern Edge Detection Application',
-  description: 'Edge Detectr is a modern application offering multiple edge detection algorithms including Sobel, Prewitt, and Roberts Cross for image processing',
-  keywords: 'edge detection, image processing, computer vision, sobel, prewitt, roberts cross, openmp',
+  title: 'Edge Detectr | Free Online Edge Detection Tool',
+  description: 'Transform your images with Edge Detectr - a free online tool for edge detection using Sobel, Prewitt, and Roberts Cross algorithms. No signup required.',
+  keywords: 'edge detection, image processing, computer vision, sobel, prewitt, roberts cross, openmp, online tool, image edge detection',
   authors: [{ name: 'Kailin Xing' }],
   applicationName: 'Edge Detectr',
   metadataBase: new URL('https://edgedetectr.com'),
@@ -14,22 +14,38 @@ export const metadata: Metadata = {
   robots: {
     index: true,
     follow: true,
+    nocache: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
+  icons: {
+    icon: '/favicon.svg',
   },
   openGraph: {
-    title: 'Edge Detectr | Modern Edge Detection Application',
-    description: 'Process images with multiple edge detection algorithms including Sobel, Prewitt, and Roberts Cross',
+    title: 'Edge Detectr | Free Online Edge Detection Tool',
+    description: 'Transform your images with Edge Detectr - a free online tool for edge detection using Sobel, Prewitt, and Roberts Cross algorithms. No signup required.',
     url: 'https://edgedetectr.com',
     siteName: 'Edge Detectr',
     locale: 'en_US',
     type: 'website',
+    images: [
+      {
+        url: 'https://edgedetectr.com/images/og-image.jpg',
+        width: 1200,
+        height: 630,
+        alt: 'Edge Detectr - Online Edge Detection Tool',
+      }
+    ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Edge Detectr | Modern Edge Detection Application',
-    description: 'Process images with multiple edge detection algorithms including Sobel, Prewitt, and Roberts Cross',
-  },
-  icons: {
-    icon: '/favicon.svg',
+    title: 'Edge Detectr | Free Online Edge Detection Tool',
+    description: 'Transform your images with Edge Detectr - a free online tool for edge detection using Sobel, Prewitt, and Roberts Cross algorithms.',
+    images: ['https://edgedetectr.com/images/og-image.jpg'],
   },
 }
 
