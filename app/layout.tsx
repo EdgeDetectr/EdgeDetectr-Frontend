@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import './globals.css'
 import Script from 'next/script'
+import { GoogleAnalytics } from '@next/third-parties/google'
 
 export const metadata: Metadata = {
   title: 'Edge Detectr | Free Online Edge Detection Tool',
@@ -87,6 +88,7 @@ export default function RootLayout({
       </head>
       <body className="flex flex-col min-h-screen h-full text-gray-900">
         {children}
+        <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID || ''} />
       </body>
     </html>
   )
